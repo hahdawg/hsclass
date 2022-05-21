@@ -4,13 +4,6 @@ import Control.Monad (join)
 data Cow = Cow { name :: String, age :: Int, weight :: Int}
 
 
-describeList :: [a] -> String
-describeList xs = "The list is " ++ case xs of
-    [] -> "empty"
-    [x] -> "a singleton"
-    xs -> "a longer list"
-
-
 noEmpty :: String -> Maybe String
 noEmpty x
     | length x == 0 = Nothing
@@ -29,6 +22,7 @@ weightCheck (Cow n a w)
     | otherwise = Just (Cow n a w)
 
 
+-- case example
 mkCowCase :: String -> Int -> Int -> Maybe Cow
 mkCowCase n a w =
     case noEmpty n of
@@ -114,6 +108,9 @@ checkPwdM' :: IO ()
 checkPwdM' = join checkPwdA'
 
 
+data Logger a = Logger String a
+
+
 -- StackOverflow example
 ifM' :: Monad m => m Bool -> m a -> m a -> m a
 ifM' c x y = c >>= \b -> if b then x else y
@@ -122,7 +119,7 @@ ifA' :: Applicative f => f Bool -> f a -> f a -> f a
 ifA' c x y = f <$> c <*> x <*> y
     where
         f = \c' x' y' -> if c' then x' else y'
--- NOTE: ifA' works fine with any Just values, but it returns Nothing if x or y is Nothing
+-- NOTE: ifA' works fine with any Just values, but it returns Nothing if x or y is Nothing, regardless of what we pass for c
 -- Here, if f = Maybe, c = Just True, x = Just 1, and y = Nothing, we end up with Maybe f <*> Nothing = Nothing
 -- 1. f c x y <$> Just True <*> Just 1 <*> Nothing
 -- 2. Just (f True x y) <*> Just 1 <*> Nothing

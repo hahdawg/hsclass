@@ -98,6 +98,7 @@ weightCheck c =
             w = weight c
 
 
+-- do notation
 mkCow :: String -> Int -> Int -> Maybe Cow
 mkCow name age weight = do
     name' <- noEmpty name
@@ -106,6 +107,7 @@ mkCow name age weight = do
     weightCheck (Cow name' age' weight')
 
 
+-- bind notation
 mkCow' :: String -> Int -> Int -> Maybe Cow
 mkCow' name age weight =
     noEmpty name >>= \n ->
@@ -114,20 +116,7 @@ mkCow' name age weight =
     weightCheck (Cow name age weight)
 
 
-doSomething :: IO (String, String)
-doSomething = do
-    a <- getLine
-    b <- getLine
-    pure (a, b)
-
-
-doSomething' :: IO (String, String)
-doSomething' = 
-    getLine >>= \a ->
-    getLine >>= \b ->
-    pure (a, b)
-
-
+-- StackOverflow example
 fireMissles :: IO (String)
 fireMissles = do
     pure ("Missles Fired") 
@@ -138,18 +127,20 @@ doNothing = do
     pure ("Nothing done") 
 
 
-demo_monad :: IO (String)
-demo_monad = do
+demoM :: IO (String)
+demoM = do
     b <- readLn :: IO Bool
     if b
         then fireMissles
         else doNothing
 
 
-demo_fmap = (\b -> if b then fireMissles else doNothing) <$> readLn
+demoA :: IO (IO (String))  -- Nested IO, so can't use without join
+demoA = (\b -> if b then fireMissles else doNothing) <$> readLn
 
 
-demo_applicative = pure f <*> readLn
+demoA' :: IO (IO (String))
+demoA' = pure f <*> readLn
     where f = \b -> if b then fireMissles else doNothing
 
 
@@ -159,3 +150,78 @@ ifM' c x y = c >>= \z -> if z then x else y
 
 ifA :: Applicative f => f Bool -> f a -> f a -> f a
 ifA c x y = (\c' x' y' -> if c' then x' else y') <$> c <*> x <*> y
+
+
+type Founded = Int
+type Coders = Int
+
+data SoftwareShop = Shop { founded :: Founded, programmers :: Coders } deriving (Eq, Show)
+
+
+data FoundedError = 
+    NegativeYears Founded
+    | TooManyYears Founded
+    | NegativeCoders Coders
+    | TooManyCoders Coders
+    | TooManyCodersForYears Founded Coders
+    deriving (Eq, Show)
+
+validateFounded n
+    | n < 0 = Left $ NegativeYears n
+    | n > 500 = Left $ TooManyYears n
+    | otherwise = Right n
+
+validateCoders n
+    | n < 0 = Left $ NegativeCoders n
+    | n > 5000 = Left $ TooManyYears n
+    | otherwise = Right n
+
+
+mkSoftware :: Int -> Int -> Either FoundedError SoftwareShop
+mkSoftware years coders = do
+    founded <- validateFounded years
+    programmers <- validateCoders coders
+    if programmers > div founded 10
+        then Left $ TooManyCodersForYears founded programmers
+        else Right $ Shop founded programmers
+
+
+mcomp :: Monad m => (b -> m c) -> (a -> m b) -> a -> m c
+mcomp f g x = g x >>= f
+
+
+-- You could've invented Monads
+
+-- Basic Fns
+f :: Float -> Float
+f x = 2 * x
+
+g :: Float -> Float
+g x = 0.5 * x
+
+
+-- Logged basic functions
+f' :: Float -> (Float, String)
+f' x = (f x, "f ran")
+
+
+g' :: Float -> (Float, String)
+g' x = (g x, "g ran")
+
+
+-- bnd: pass logged output to logged function
+bnd :: (Float, String) -> (Float -> (Float, String)) -> (Float, String)
+bnd (x, s) f = (y, s ++ "; " ++ s')
+    where
+        (y, s') = f x
+
+
+unit :: Float -> (Float, String)
+unit x = (x, "")
+
+
+-- imitation bind operator
+(>>?) :: (Float, String) -> (Float -> (Float, String)) -> (Float, String)
+(x, s) >>? f = bnd (x, s) f
+
+chain = unit 100.0 >>? f' >>? f' >>? g' >>? g'
