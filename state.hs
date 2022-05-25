@@ -63,30 +63,41 @@ instance Applicative (State s) where
 
 -- >>= :: m a -> (a -> m b) -> m b
 -- >>= State (s -> (a, s)) -> (a -> State (s -> (b, s))) -> State (s -> (b, s))
--- Bind mainly composes state transition functions
+-- Bind computes values a and composes state transition functions s -> (a, s)
 instance Monad (State s) where
     return = pure
     State f >>= g = State $ \stack ->
         let
-            (a, stack') = f stack  -- pull f out of State, and evaluate it on s0, to get (a, s1)
+            (a, stack') = f stack  -- State Update: pull f out of State, and evaluate it on s0, to get (a, s1)
             (State h) = g a  -- evaluate g on value output of f
-            (b, stack'') = h stack'  -- evaluate h on s1 to get (b, s2)
+            (b, stack'') = h stack'  -- State Update: evaluate h on s1 to get (b, s2)
         in
             (b, stack'')
             
             
+-- push is now a state transition function wrapped in State
 push :: Int -> State [Int] Int
 push x = State (\xs -> (x, x:xs))
 
 
+-- pop is now a state transition function wrapped in State
 pop :: State [Int] Int
 pop = State (\(x:xs) -> (x, xs))
 
+{-
+Note the 
+  push 4 >>= \_ -> pop >>= \x -> push (x + 100)
+lines.
 
--- Note the pop >> x
--- The state output of 
---  push 4 = (4, [4, 3, 2, 1) = (a, s)
---  but only 'a' gets bound in \x -> push (x + 100)
+The state output of 
+    push 4 = (4, [4, 3, 2, 1) = (a, s)
+but only 'a' gets bound in \x -> push (x + 100)
+
+Check the state Monad definiton to see why.
+
+Note: Can't use >> here, because state wouldn't update
+-}
+
 stackBind :: State [Int] Int
 stackBind =           -- (_,    [])
     push 1 >>= \_ ->  -- (1,    [1])
@@ -95,6 +106,10 @@ stackBind =           -- (_,    [])
     push 4 >>= \_ ->  -- (4,    [4, 3, 2, 1])
     pop >>= \x ->     -- (4,    [3, 2, 1])
     push (x + 100)    -- (104,  [104, 3, 2, 1])
+
+
+runStackBind :: [Int]
+runStackBind = snd $ runState stackBind [22]
 
 
 stackDo :: State [Int] Int
@@ -107,8 +122,31 @@ stackDo = do
     push (x + 100)
 
 
--- random :: (RandomGen g, Uniform a) => g -> (a, g)
--- to use: runState randomSt (mkStdGen 3)
+-- Queue Example
+qpop :: State [Int] Int
+qpop = State (\xs -> if length xs == 0 then (0, []) else (last xs, init xs))
+
+qpush :: Int -> Int -> State [Int] Int
+qpush x maxlen = State (\xs -> if length xs == maxlen then (x, x:(init xs)) else (x, x:xs))
+
+qreverse :: State [Int] Int
+qreverse = State (\xs -> (0, reverse xs))
+
+
+buildQueue =
+    qpush 1 3 >>= \_ ->
+    qpush 2 3 >>= \_ ->
+    qpush 3 3 >>= \_ ->
+    qpush 4 3 >>= \_ ->
+    qpop >>= \x ->
+    qpush x 3 >>= \_ ->
+    qreverse
+
+{-
+random :: (RandomGen g, Uniform a) => g -> (a, g)
+to use: runState randomSt (mkStdGen 3)
+-}
+
 randomSt :: (RandomGen g, Random a) => State g a
 randomSt = State random
 
@@ -129,6 +167,11 @@ threeCoinsBind =
     return (x, y, z)
 
 
+runThreeCoinsBind :: (Bool, Bool, Bool)
+runThreeCoinsBind = fst $ runState threeCoinsBind (mkStdGen 42)
+
+
+-- Other do/bind examples for reference
 maybeBind :: Maybe Int
 maybeBind =
     Just 1 >>= \x ->

@@ -5,6 +5,14 @@
 -- pure x = (\_ -> x)
 
 
+-- ap with a Monad
+-- <*> m (a -> b) -> m a -> m b
+ap mf ma = 
+    ma >>= \x ->
+    mf >>= \f ->
+    return (f x)
+
+
 maybeEx = do
     x <- Just 1
     y <- Just 2
