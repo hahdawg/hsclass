@@ -104,6 +104,7 @@ type Year = Int
 type TDS = Int
 type QB = String
 
+
 -- Function to get the name of GB QB at year t
 getGBQB :: History Year QB
 getGBQB = History (\t -> if t <= 2007 then "Favre" else "Rodgers")
