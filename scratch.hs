@@ -1,79 +1,32 @@
-import Control.Monad
-import Data.Char
-
-bind :: (Monad m) => m a -> (a -> m b) -> m b
-bind x f = join $ fmap f x
 
 
-binding :: IO ()
-binding = do
-    putStrLn "What's your name?"
-    name <- getLine
-    putStrLn ("Your name is " ++ name)
+
+-- >>= :: m a -> (a -> m b) -> m b
+-- >>= :: [a] -> (a -> [b]) -> [b]
+-- instance Monad [] where
+--    return x = [x]
+--    xs >>= f = concat $ map f xs
 
 
-binding' = 
-    putStrLn "What's your name?" >>
-    getLine >>= 
-    (\s -> putStrLn ("Your name is " ++ s))
-
-
-twoBinds :: IO ()
-twoBinds = do
-    putStrLn "name pls:"
-    name <- getLine
-    let nameUpper = map toUpper name  -- let binding
-    putStrLn "age pls:"
-    age <- getLine
-    putStrLn ("Your name is " ++ nameUpper ++ ", and you are " ++ age ++ " years old")
-
-
-twoBinds' :: IO ()
-twoBinds' =
-    putStrLn "name pls:" >> 
-    getLine >>= \name ->
-    putStrLn "age pls:" >>
-    getLine >>= \age ->
-    putStrLn ("Your name is " ++ map toUpper name ++ ", and you are " ++ age ++ " years old")
-
-
-twiceWhenEven :: [Int] -> [Int]
-twiceWhenEven xs = do
-    x <- xs
-    if even x
-        then [x, x]
-        else [x]
-
-
-twiceWhenEven' :: [Int] -> [Int]
-twiceWhenEven' xs =
-    xs >>= twe
+pairs :: [a] -> [b] -> [(a, b)]
+pairs xs ys = 
+    xs >>= \x -> 
+    ys >>= \y ->
+    g x y
     where
-        twe x
-            | even x = [x, x]
-            | otherwise = [x]
+        g x' y' = [(x', y')]
 
 
-untilNull :: IO ()
-untilNull = do
-    putStrLn ("Enter some text")
-    line <- getLine
-    if null line
-        then return ()
-        else (do
-            putStrLn $ reverse line
-            untilNull
-        )
+div2 :: Int -> Maybe Int
+div2 x 
+    | even x = Just (div x 2)
+    | otherwise = Nothing
 
 
-processLine :: String -> IO (String)
-processLine s
-    | null s = return "" 
-    | otherwise = return (reverse s)
+div4 x = return x >>= div2 >>= div2
 
-
-
-untilNull' :: IO ()
-untilNull' =
-    putStrLn ("Enter some text") >>
-    getLine >>= processLine >>= (\proc -> if null proc then return () else untilNull')
+div4Do x =
+    do
+        x1 <- div2 x
+        x2 <- div2 x1
+        return x2

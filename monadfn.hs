@@ -33,3 +33,25 @@ branch cfg x
 
 ex :: Config -> Int
 ex = inc >>= branch
+
+
+addStuffDo :: Int -> Int
+addStuffDo = do
+    a <- (*2)
+    b <- (+10)
+    return (a + b)
+
+
+addStuffBind :: Int -> Int
+addStuffBind =
+    (*2) >>= \a ->
+    (+10) >>= \r ->
+    return (a + r)
+
+
+addStuffFn :: Int -> Int
+addStuffFn_ra :: Int -> Int
+addStuffFn_ra r = 2*r
+addStuffFn_arb :: Int -> Int -> Int
+addStuffFn_arb a r = a + r + 10
+addStuffFn = addStuffFn_ra >>= addStuffFn_arb
